@@ -37,7 +37,8 @@ public class FileService {
     }
 
     // we can run Async if needed
-    public void storeResult(File outputFile, URL url) throws IOException {
+    public void storeResult(File outputFile, URL url) throws IOException, InterruptedException {
+        Thread.sleep(10000); // simulate long operation
         try (InputStream is = url.openStream();
              OutputStream os = new FileOutputStream(outputFile)) {
             IOUtils.copy(is, os);

@@ -1,6 +1,8 @@
 package com.celonis.challenge.controllers;
 
 import com.celonis.challenge.model.ProjectGenerationTask;
+import com.celonis.challenge.model.Status;
+import com.celonis.challenge.model.Task;
 import com.celonis.challenge.services.FileService;
 import com.celonis.challenge.services.TaskService;
 import org.springframework.core.io.FileSystemResource;
@@ -26,24 +28,24 @@ public class TaskController {
     }
 
     @GetMapping("/")
-    public List<ProjectGenerationTask> listTasks() {
+    public List<Task> listTasks() {
         return taskService.listTasks();
     }
 
     @PostMapping("/")
-    public ProjectGenerationTask createTask(@RequestBody @Valid ProjectGenerationTask projectGenerationTask) {
-        return taskService.createTask(projectGenerationTask);
+    public Task createTask(@RequestBody @Valid Task task) {
+        return taskService.createTask(task);
     }
 
     @GetMapping("/{taskId}")
-    public ProjectGenerationTask getTask(@PathVariable String taskId) {
+    public Task getTask(@PathVariable String taskId) {
         return taskService.getTask(taskId);
     }
 
     @PutMapping("/{taskId}")
-    public ProjectGenerationTask updateTask(@PathVariable String taskId,
-                                            @RequestBody @Valid ProjectGenerationTask projectGenerationTask) {
-        return taskService.update(taskId, projectGenerationTask);
+    public Task updateTask(@PathVariable String taskId,
+                           @RequestBody @Valid Task task) {
+        return taskService.update(taskId, task);
     }
 
     @DeleteMapping("/{taskId}")
@@ -60,7 +62,14 @@ public class TaskController {
 
     @GetMapping("/{taskId}/result")
     public ResponseEntity<FileSystemResource> getResult(@PathVariable String taskId) {
-        return taskService.getTaskResult(taskId);
+        var task = taskService.getTask(taskId);
+        if (task.status != Status.COMPLETED) {
+            throw new IllegalStateException("Task is not finished yet");
+        }
+        if (task instanceof ProjectGenerationTask) {
+            return fileService.getTaskResult(((ProjectGenerationTask) task).storageLocation);
+        } else {
+            throw new IllegalArgumentException("Unsupported task type");
+        }
     }
-
 }

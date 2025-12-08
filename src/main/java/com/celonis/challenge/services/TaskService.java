@@ -1,80 +1,85 @@
 package com.celonis.challenge.services;
 
-import com.celonis.challenge.exceptions.InternalException;
+import com.celonis.challenge.events.TaskExecutionEvent;
+import com.celonis.challenge.events.TaskFailedEvent;
+import com.celonis.challenge.events.TaskFinishedEvent;
+import com.celonis.challenge.events.TaskUpdatedEvent;
 import com.celonis.challenge.exceptions.NotFoundException;
-import com.celonis.challenge.model.ProjectGenerationTask;
-import com.celonis.challenge.model.ProjectGenerationTaskRepository;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.http.ResponseEntity;
+import com.celonis.challenge.model.Status;
+import com.celonis.challenge.model.Task;
+import com.celonis.challenge.model.TaskRepository;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import java.net.URL;
-import java.util.Date;
+import javax.transaction.Transactional;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class TaskService {
 
-    private final ProjectGenerationTaskRepository projectGenerationTaskRepository;
+    private final TaskRepository taskRepository;
 
-    private final FileService fileService;
-    
-    public TaskService(ProjectGenerationTaskRepository projectGenerationTaskRepository,
-                       FileService fileService) {
-        this.projectGenerationTaskRepository = projectGenerationTaskRepository;
-        this.fileService = fileService;
+    private final ApplicationEventPublisher eventPublisher;
+
+    public TaskService(TaskRepository taskRepository,
+                       ApplicationEventPublisher eventPublisher) {
+        this.taskRepository = taskRepository;
+        this.eventPublisher = eventPublisher;
     }
 
-    public List<ProjectGenerationTask> listTasks() {
-        return projectGenerationTaskRepository.findAll();
+    public List<Task> listTasks() {
+        return taskRepository.findAll();
     }
 
-    public ProjectGenerationTask createTask(ProjectGenerationTask projectGenerationTask) {
-        projectGenerationTask.setId(null);
-        projectGenerationTask.setCreationDate(new Date());
-        return projectGenerationTaskRepository.save(projectGenerationTask);
+    public Task createTask(Task task) {
+        return taskRepository.save(task);
     }
 
-    public ProjectGenerationTask getTask(String taskId) {
+    public Task getTask(String taskId) {
         return get(taskId);
     }
 
-    public ProjectGenerationTask update(String taskId, ProjectGenerationTask projectGenerationTask) {
-        ProjectGenerationTask existing = get(taskId);
-        existing.setCreationDate(projectGenerationTask.getCreationDate());
-        existing.setName(projectGenerationTask.getName());
-        return projectGenerationTaskRepository.save(existing);
+    public Task update(String taskId, Task task) {
+        var existing = get(taskId);
+        existing.creationDate = task.creationDate;
+        existing.name = task.name;
+        return taskRepository.save(existing);
     }
 
     public void delete(String taskId) {
-        projectGenerationTaskRepository.deleteById(taskId);
+        taskRepository.deleteById(taskId);
     }
 
     public void executeTask(String taskId) {
-        URL url = Thread.currentThread().getContextClassLoader().getResource("challenge.zip");
-        if (url == null) {
-            throw new InternalException("Zip file not found");
-        }
-        try {
-            var outputFile = fileService.createFile(taskId);
-
-            ProjectGenerationTask projectGenerationTask = getTask(taskId);
-            projectGenerationTask.setStorageLocation(outputFile.getAbsolutePath());
-            projectGenerationTaskRepository.save(projectGenerationTask);
-
-            fileService.storeResult(outputFile, url);
-        } catch (Exception e) {
-            throw new InternalException(e);
-        }
+        var task = getTask(taskId);
+        task.status = Status.IN_PROGRESS;
+        taskRepository.save(task);
+        eventPublisher.publishEvent(new TaskExecutionEvent(task));
     }
 
-    private ProjectGenerationTask get(String taskId) {
-        Optional<ProjectGenerationTask> projectGenerationTask = projectGenerationTaskRepository.findById(taskId);
-        return projectGenerationTask.orElseThrow(NotFoundException::new);
+    @EventListener
+    public void handleTaskUpdatedEvent(TaskUpdatedEvent event) {
+        taskRepository.save(event.getTask());
     }
 
-    public ResponseEntity<FileSystemResource> getTaskResult(String taskId) {
-        return fileService.getTaskResult(get(taskId).getStorageLocation());
+    @EventListener
+    public void handleTaskFinishedEvent(TaskFinishedEvent event) {
+        var task = event.getTask();
+        task.status = Status.COMPLETED;
+        taskRepository.save(task);
+    }
+
+    @Transactional(value = Transactional.TxType.REQUIRES_NEW)
+    @EventListener
+    public void handleTaskFailedEvent(TaskFailedEvent event) {
+        var task = event.getTask();
+        task.status = Status.FAILED;
+        taskRepository.save(task);
+    }
+
+    private Task get(String taskId) {
+        return taskRepository.findById(taskId)
+                .orElseThrow(NotFoundException::new);
     }
 }
