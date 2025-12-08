@@ -1,0 +1,5 @@
+celonis:
+  task:
+    cleanup:
+      cron: "0 * * * * *"
+      older-than-days: 1
