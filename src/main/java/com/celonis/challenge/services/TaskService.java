@@ -4,6 +4,8 @@ import com.celonis.challenge.exceptions.InternalException;
 import com.celonis.challenge.exceptions.NotFoundException;
 import com.celonis.challenge.model.ProjectGenerationTask;
 import com.celonis.challenge.model.ProjectGenerationTaskRepository;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.net.URL;
@@ -55,7 +57,13 @@ public class TaskService {
             throw new InternalException("Zip file not found");
         }
         try {
-            fileService.storeResult(taskId, url);
+            var outputFile = fileService.createFile(taskId);
+
+            ProjectGenerationTask projectGenerationTask = getTask(taskId);
+            projectGenerationTask.setStorageLocation(outputFile.getAbsolutePath());
+            projectGenerationTaskRepository.save(projectGenerationTask);
+
+            fileService.storeResult(outputFile, url);
         } catch (Exception e) {
             throw new InternalException(e);
         }
@@ -64,5 +72,9 @@ public class TaskService {
     private ProjectGenerationTask get(String taskId) {
         Optional<ProjectGenerationTask> projectGenerationTask = projectGenerationTaskRepository.findById(taskId);
         return projectGenerationTask.orElseThrow(NotFoundException::new);
+    }
+
+    public ResponseEntity<FileSystemResource> getTaskResult(String taskId) {
+        return fileService.getTaskResult(get(taskId).getStorageLocation());
     }
 }

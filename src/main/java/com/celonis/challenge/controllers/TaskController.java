@@ -60,7 +60,7 @@ public class TaskController {
 
     @GetMapping("/{taskId}/result")
     public ResponseEntity<FileSystemResource> getResult(@PathVariable String taskId) {
-        return fileService.getTaskResult(taskId);
+        return taskService.getTaskResult(taskId);
     }
 
 }

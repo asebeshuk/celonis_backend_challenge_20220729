@@ -1,8 +1,6 @@
 package com.celonis.challenge.services;
 
 import com.celonis.challenge.exceptions.InternalException;
-import com.celonis.challenge.model.ProjectGenerationTask;
-import com.celonis.challenge.model.ProjectGenerationTaskRepository;
 import org.apache.commons.io.IOUtils;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
@@ -17,19 +15,9 @@ import java.net.URL;
 @Component
 public class FileService {
 
-    private final TaskService taskService;
-
-    private final ProjectGenerationTaskRepository projectGenerationTaskRepository;
-
-    public FileService(TaskService taskService,
-                       ProjectGenerationTaskRepository projectGenerationTaskRepository) {
-        this.taskService = taskService;
-        this.projectGenerationTaskRepository = projectGenerationTaskRepository;
-    }
-
-    public ResponseEntity<FileSystemResource> getTaskResult(String taskId) {
-        ProjectGenerationTask projectGenerationTask = taskService.getTask(taskId);
-        File inputFile = new File(projectGenerationTask.getStorageLocation());
+    // not so good design. maybe be just return file and move response entity to controller
+    public ResponseEntity<FileSystemResource> getTaskResult(String storageLocation) {
+        File inputFile = new File(storageLocation);
 
         if (!inputFile.exists()) {
             throw new InternalException("File not generated yet");
@@ -42,12 +30,14 @@ public class FileService {
         return new ResponseEntity<>(new FileSystemResource(inputFile), respHeaders, HttpStatus.OK);
     }
 
-    public void storeResult(String taskId, URL url) throws IOException {
-        ProjectGenerationTask projectGenerationTask = taskService.getTask(taskId);
+    public File createFile(String taskId) throws IOException {
         File outputFile = File.createTempFile(taskId, ".zip");
         outputFile.deleteOnExit();
-        projectGenerationTask.setStorageLocation(outputFile.getAbsolutePath());
-        projectGenerationTaskRepository.save(projectGenerationTask);
+        return outputFile;
+    }
+
+    // we can run Async if needed
+    public void storeResult(File outputFile, URL url) throws IOException {
         try (InputStream is = url.openStream();
              OutputStream os = new FileOutputStream(outputFile)) {
             IOUtils.copy(is, os);
