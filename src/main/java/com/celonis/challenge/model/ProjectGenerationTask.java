@@ -9,4 +9,11 @@ public class ProjectGenerationTask extends Task {
 
     @JsonIgnore
     public String storageLocation;
+
+    @Override
+    public String toString() {
+        return "ProjectGenerationTask{" +
+                "storageLocation='" + storageLocation + '\'' +
+                "} " + super.toString();
+    }
 }

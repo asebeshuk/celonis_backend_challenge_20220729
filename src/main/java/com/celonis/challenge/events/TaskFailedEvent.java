@@ -1,15 +1,13 @@
 package com.celonis.challenge.events;
 
-import com.celonis.challenge.model.Task;
-
 public class TaskFailedEvent {
-    private final Task task;
+    private final String taskId;
 
-    public TaskFailedEvent(Task task) {
-        this.task = task;
+    public TaskFailedEvent(String taskId) {
+        this.taskId = taskId;
     }
 
-    public Task getTask() {
-        return task;
+    public String getTaskId() {
+        return taskId;
     }
 }

@@ -60,6 +60,12 @@ public class TaskController {
         taskService.executeTask(taskId);
     }
 
+    @PostMapping("/{taskId}/cancel")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelTask(@PathVariable String taskId) {
+        taskService.cancelTask(taskId);
+    }
+
     @GetMapping("/{taskId}/result")
     public ResponseEntity<FileSystemResource> getResult(@PathVariable String taskId) {
         var task = taskService.getTask(taskId);

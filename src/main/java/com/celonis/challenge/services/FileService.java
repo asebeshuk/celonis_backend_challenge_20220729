@@ -1,7 +1,11 @@
 package com.celonis.challenge.services;
 
+import com.celonis.challenge.events.TaskProgressEvent;
 import com.celonis.challenge.exceptions.InternalException;
 import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -9,14 +13,25 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 
 @Component
 public class FileService {
 
-    // not so good design. maybe be just return file and move response entity to controller
+    private final ApplicationEventPublisher eventPublisher;
+
+    private static final Logger log = LoggerFactory.getLogger(FileService.class);
+
+    public FileService(ApplicationEventPublisher eventPublisher) {
+        this.eventPublisher = eventPublisher;
+    }
+
     public ResponseEntity<FileSystemResource> getTaskResult(String storageLocation) {
+        log.info("Fetching file from location: {}", storageLocation);
         File inputFile = new File(storageLocation);
 
         if (!inputFile.exists()) {
@@ -36,12 +51,17 @@ public class FileService {
         return outputFile;
     }
 
-    // we can run Async if needed
-    public void storeResult(File outputFile, URL url) throws IOException, InterruptedException {
-        Thread.sleep(10000); // simulate long operation
+    public void storeResult(File outputFile, URL url, String taskId) throws IOException, InterruptedException {
+        long totalSize = url.openConnection().getContentLengthLong();
+
+        log.info("Storing result for task {} to file {} (size: {} bytes)", taskId, outputFile.getAbsolutePath(), totalSize);
         try (InputStream is = url.openStream();
-             OutputStream os = new FileOutputStream(outputFile)) {
-            IOUtils.copy(is, os);
+             ProgressInputStream progressIs = new ProgressInputStream(is, totalSize, progress -> {
+                 this.eventPublisher.publishEvent(new TaskProgressEvent(taskId, progress));
+             });
+             FileOutputStream os = new FileOutputStream(outputFile)) {
+
+            IOUtils.copyLarge(progressIs, os);
         }
     }
 }
