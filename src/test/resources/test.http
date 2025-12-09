@@ -1,0 +1,61 @@
+###
+GET http://localhost:8080/api/tasks/
+Celonis-Auth: totally_secret
+
+
+###
+POST http://localhost:8080/api/tasks/
+Celonis-Auth: totally_secret
+Content-Type: application/json
+
+{
+  "name": "New Task"
+}
+
+###
+POST http://localhost:8080/api/tasks/
+Celonis-Auth: totally_secret
+Content-Type: application/json
+
+{
+  "name": "New Counter Task ",
+  "x": 10,
+  "y": 20
+}
+
+
+###
+POST http://localhost:8080/api/tasks/
+Celonis-Auth: totally_secret
+Content-Type: application/json
+
+{
+  "name": "New Task"
+}
+
+###
+GET http://localhost:8080/api/tasks/d644a79d-c289-4787-a58a-bcba87e82563/result
+Celonis-Auth: totally_secret
+
+
+###
+POST http://localhost:8080/api/tasks/d644a79d-c289-4787-a58a-bcba87e82563/execute
+Celonis-Auth: totally_secret
+
+
+###
+POST http://localhost:8080/api/tasks/test/create/project-generation?count=5000
+Celonis-Auth: totally_secret
+
+
+###
+POST http://localhost:8080/api/tasks/test/create/counter?count=5000
+Celonis-Auth: totally_secret
+
+###
+POST http://localhost:8080/api/tasks/test/execute?count=10000
+Celonis-Auth: totally_secret
+
+###
+POST http://localhost:8080/api/tasks/test/cancel?count=1000
+Celonis-Auth: totally_secret
