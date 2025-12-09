@@ -24,14 +24,12 @@ jobs:
       - name: Build & run tests
         run: mvn -B clean verify
 
-      - name: Publish JUnit Test Results
-        uses: dorny/test-reporter@v1
-        if: always()
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: (!cancelled())
         with:
-          name: Unit Tests (Java 11)
-          path: target/surefire-reports/*.xml
-          reporter: junit
-          fail-on-error: true
+          files: |
+            surefire-reports/**/*.xml
 
       - name: Upload raw test reports
         if: always()
