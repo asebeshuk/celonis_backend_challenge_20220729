@@ -66,3 +66,64 @@ Canceling a task that is being executed should be possible, in which case the ex
 
 The API can be used to create tasks, but the user is not required to execute those tasks.
 The tasks that are not executed after an extended period (e.g. a week) should be periodically cleaned up (deleted).
+
+# Implementation notes
+
+## Open questions / assumptions
+
+### API design
+
+- "keep existing behavior and API."
+- "implementing a new task type"
+
+    - Assumption: we should not have different endpoints for different task types, but rather a unified task API
+    - Assumption: we should not change API (add a new property "type" to the ProjectGenerationTask). what is why
+      com.celonis.challenge.model.TaskDeserializer is implemented (to distinguish between different task types based on
+      the presence of certain properties
+
+### CounterTask execution
+
+- "get increased by one every second"
+
+    - Assumption: it should be incremented with a delay of 1 second between increments
+
+### Task cancellation
+
+- "implementing a task cancellation mechanism"
+
+    - Assumption: we should add a new endpoint POST /tasks/{id}/cancel to cancel a task
+    - Assumption: the ProjectGenerationTask cancellation is out of scope for this challenge
+
+### Task progress monitoring
+
+- "showing the progress of the task execution"
+
+    - Assumption: we should not create a new endpoint GET /tasks/{id}/progress to get the progress of a task. the
+      progress should be part of the existing GET /tasks/{id} endpoint response.
+    - Assumption: the progress is represented as a percentage (0-100)
+
+## Possible problems / limitations
+
+### CounterTask execution
+
+if we have X millions CounterTasks running simultaneously, we will have X millions scheduled tasks running every second,
+which may lead to performance issues.
+
+we can:
+
+- limit the number of concurrent CounterTasks. the CounterTaskService will select max N tasks to run concurrently.
+- we can setup Scheduler to run on different pods / machines. and every pod / machine will run its own set of tasks. (
+  have to extend Status enum with e.g. ASSIGNED status to indicate that the task is assigned to a pod / machine)
+- we can setup a Queue. Scheduler will select tasks and push to the queue. Create a pool of workers processing tasks
+  from the queue.(no guarantee that tasks will be processed in 1 second intervals)
+
+## What is missing / what needs to be done for production readiness
+
+- Proper error handling and input validation
+- Unit and integration tests
+- API documentation (e.g. Swagger)
+- Configuration management (e.g. application.yaml). secrets from terraform, etc
+- Pipeline for build and deployment
+- Load testing and performance optimizations
+- Monitoring and alerting (for failed tasks, high resource usage, etc)
+

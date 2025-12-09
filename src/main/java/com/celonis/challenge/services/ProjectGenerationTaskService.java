@@ -31,6 +31,7 @@ public class ProjectGenerationTaskService {
         this.eventPublisher = eventPublisher;
     }
 
+    // Async to not block the main thread
     @Async
     @EventListener
     @Transactional(dontRollbackOn = {InternalException.class})

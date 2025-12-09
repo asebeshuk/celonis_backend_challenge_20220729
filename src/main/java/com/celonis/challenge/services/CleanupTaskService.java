@@ -31,6 +31,7 @@ public class CleanupTaskService {
     @Scheduled(cron = "${celonis.task.cleanup.cron:0 0 * * * *}")
     @Transactional
     public void performCleanup() {
+        // better to use java.time API and convert to Date only when needed
         Date cutoff = java.util.Date.from(
                 LocalDateTime.now().minusDays(olderThanDays)
                         .atZone(ZoneId.systemDefault()).toInstant()
@@ -38,5 +39,7 @@ public class CleanupTaskService {
 
         log.info("Performing cleanup of tasks with status CREATED older than {}", cutoff);
         taskRepository.deleteByStatusAndOlderThan(Status.CREATED, cutoff);
+
+        // we can delete old FAILED and CANCELLED tasks as well if needed
     }
 }

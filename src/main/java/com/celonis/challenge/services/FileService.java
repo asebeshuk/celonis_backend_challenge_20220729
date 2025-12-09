@@ -57,6 +57,7 @@ public class FileService {
         log.info("Storing result for task {} to file {} (size: {} bytes)", taskId, outputFile.getAbsolutePath(), totalSize);
         try (InputStream is = url.openStream();
              ProgressInputStream progressIs = new ProgressInputStream(is, totalSize, progress -> {
+                 // try to get progress for copy operation
                  this.eventPublisher.publishEvent(new TaskProgressEvent(taskId, progress));
              });
              FileOutputStream os = new FileOutputStream(outputFile)) {

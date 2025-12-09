@@ -28,6 +28,7 @@ public class CounterTaskService {
             lockAtMostFor = "PT50S", lockAtLeastFor = "PT10S")
     @Scheduled(fixedRate = 1000)
     public void performTask() {
+        // we can add limit here if needed
         counterTaskRepository.findByStatus(com.celonis.challenge.model.Status.IN_PROGRESS)
                 .forEach(task -> {
                     log.info("Processing CounterTask id={}", task);
@@ -37,6 +38,7 @@ public class CounterTaskService {
                     } else {
                         task.progressPercentage = (task.pointer - task.start) * 100 / (task.end - task.start);
                         eventPublisher.publishEvent(new TaskUpdatedEvent(task));
+                        // eventual TaskProgressEvent here. if we have another handler to publish progress to external systems.
                     }
                 });
     }

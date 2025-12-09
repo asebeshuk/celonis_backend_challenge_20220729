@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+// we can manage test tasks only in dev profile
 @Profile("dev")
 @RestController
 @RequestMapping("/api/tasks/test")
